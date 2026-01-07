@@ -1,0 +1,6 @@
+numpy<2
+scipy
+scikit-learn
+matplotlib
+pyAudioAnalysis
+pydub
