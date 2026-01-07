@@ -130,7 +130,11 @@ def process_audio(audio_path: str, out_txt: str):
 
 def main():
     ensure_dirs()
-
+    if not os.path.isdir(INPUT_DIR):
+        
+        raise ValueError(f"Path is not a valid directory or does not exist: {INPUT_DIR}")
+    if not any(os.scandir(INPUT_DIR)):
+        print("Audio Directory is Empty.")
     for fname in os.listdir(INPUT_DIR):
         if not fname.lower().endswith(AUDIO_EXTENSIONS):
             continue
