@@ -1,7 +1,10 @@
 # Background Music Detection using pyAudioAnalysis
 
-This code detects speech and background sound/music in audio files using
-pretrained models from **pyAudioAnalysis** and segments them in different folders.
+This repository contains a Python-based tool for analyzing audio files and
+segmenting them into speech, silence, and background music. The script processes
+all audio files in a given folder and automatically identifies files that
+contain background sound or music using pretrained models from **pyAudioAnalysis**.
+
 
 ## Features
 - Speech / music / silence segmentation
