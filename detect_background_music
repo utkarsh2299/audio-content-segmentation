@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""
+Detect background music in audio files using pyAudioAnalysis.
+
+- Segments audio into speech / music / silence
+- Saves segmentation output as TXT
+- Separates audio files into:
+    - with_music/
+    - no_music/
+
+Works across different pyAudioAnalysis versions by capturing
+printed segmentation output directly.
+"""
+
+import os
+import shutil
+import io
+import contextlib
+
+import matplotlib
+matplotlib.use("Agg")  # Disable GUI backends (server-safe)
+
+import pyAudioAnalysis
+from pyAudioAnalysis import audioSegmentation as aS
+
+# ===================== CONFIG =====================
+
+INPUT_DIR = "input_audios"
+OUTPUT_DIR = "output"
+
+WITH_MUSIC_DIR = os.path.join(OUTPUT_DIR, "with_music")
+NO_MUSIC_DIR = os.path.join(OUTPUT_DIR, "no_music")
+SEGMENT_DIR = os.path.join(OUTPUT_DIR, "segments")
+
+AUDIO_EXTENSIONS = (".wav", ".mp3", ".flac", ".ogg")
+
+# =================================================
+
+
+def ensure_dirs():
+    """Create required output directories."""
+    os.makedirs(WITH_MUSIC_DIR, exist_ok=True)
+    os.makedirs(NO_MUSIC_DIR, exist_ok=True)
+    os.makedirs(SEGMENT_DIR, exist_ok=True)
+
+
+def get_model_path():
+    """Locate pretrained pyAudioAnalysis model."""
+    model_dir = os.path.join(
+        os.path.dirname(pyAudioAnalysis.__file__),
+        "data",
+        "models"
+    )
+    return os.path.join(model_dir, "svm_rbf_sm")
+
+
+MODEL_PATH = get_model_path()
+
+
+def process_audio(audio_path: str, out_txt: str) -> bool:
+    """
+    Run mid-term audio segmentation and save output.
+
+    Parameters
+    ----------
+    audio_path : str
+        Path to input audio file
+    out_txt : str
+        Path to output segmentation text file
+
+    Returns
+    -------
+    bool
+        True if background music is detected, else False
+    """
+
+    buffer = io.StringIO()
+
+    try:
+        # Capture stdout produced by pyAudioAnalysis
+        with contextlib.redirect_stdout(buffer):
+            aS.mid_term_file_classification(
+                audio_path,
+                MODEL_PATH,
+                "svm_rbf",
+                True   # verbose=True → prints segmentation
+            )
+
+        output = buffer.getvalue().strip()
+
+        if not output:
+            return False
+
+        # Save segmentation output
+        with open(out_txt, "w", encoding="utf-8") as f:
+            f.write(output + "\n")
+
+        # Detect presence of music segments
+        has_music = any(
+            line.strip().endswith(",music")
+            for line in output.splitlines()
+        )
+
+        return has_music
+
+    except Exception as e:
+        print(f"[ERROR] {audio_path}: {e}")
+        return False
+
+
+def main():
+    ensure_dirs()
+
+    for fname in os.listdir(INPUT_DIR):
+        if not fname.lower().endswith(AUDIO_EXTENSIONS):
+            continue
+
+        audio_path = os.path.join(INPUT_DIR, fname)
+        out_txt = os.path.join(
+            SEGMENT_DIR,
+            os.path.splitext(fname)[0] + ".txt"
+        )
+
+        print(f"Processing: {fname}")
+        has_music = process_audio(audio_path, out_txt)
+
+        # Copy audio based on detection result
+        target_dir = WITH_MUSIC_DIR if has_music else NO_MUSIC_DIR
+        shutil.copy2(audio_path, target_dir)
+
+    print("Processing completed")
+
+
+if __name__ == "__main__":
+    main()
