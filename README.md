@@ -13,7 +13,7 @@ pretrained models from **pyAudioAnalysis** and segments them in different folder
 
 ```bash
 pip install -r requirements.txt
-
+````
 Ensure `ffmpeg` is installed for MP3 support.
 
 ## Usage
